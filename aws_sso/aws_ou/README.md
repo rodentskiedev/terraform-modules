@@ -2,6 +2,8 @@
 
 Creates one or more AWS Organizations Organizational Units (OUs) under a given parent root or OU.
 
+Obtain `parent_id` from the `data/organization` module.
+
 ## Sample Terragrunt Usage
 
 ```hcl
@@ -13,8 +15,12 @@ include "root" {
   path = find_in_parent_folders()
 }
 
+dependency "org" {
+  config_path = "../../data/organization"
+}
+
 inputs = {
-  parent_id = "r-xxxx"  # root ID from aws_organizations_organization
+  parent_id = dependency.org.outputs.root_id
 
   organizational_units = ["workloads", "sandbox", "security"]
 
