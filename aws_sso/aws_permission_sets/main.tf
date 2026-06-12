@@ -5,6 +5,8 @@ resource "aws_ssoadmin_permission_set" "this" {
   name             = each.value.name
   description      = each.value.description
   session_duration = each.value.session_duration
+
+  tags = var.tags
 }
 
 locals {

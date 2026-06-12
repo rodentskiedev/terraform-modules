@@ -9,6 +9,12 @@ variable "instance_arn" {
   type        = string
 }
 
+variable "tags" {
+  description = "Tags to apply to all permission sets."
+  type        = map(string)
+  default     = {}
+}
+
 variable "permission_sets" {
   description = "Map of permission sets to create. Each entry attaches one or more AWS managed policies. The key is used as a unique identifier."
   type = map(object({

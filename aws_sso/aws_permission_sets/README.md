@@ -22,6 +22,11 @@ dependency "sso" {
 inputs = {
   instance_arn = dependency.sso.outputs.instance_arn
 
+  tags = {
+    ManagedBy   = "Terraform"
+    Environment = "production"
+  }
+
   permission_sets = {
     admin = {
       name        = "AdministratorAccess"
