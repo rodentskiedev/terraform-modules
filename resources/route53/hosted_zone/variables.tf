@@ -10,5 +10,9 @@ variable "hosted_zones" {
     name    = string
     comment = optional(string, null)
     tags    = optional(map(string), {})
+    vpcs = optional(list(object({
+      vpc_id     = string
+      vpc_region = optional(string, null)
+    })), [])
   }))
 }
