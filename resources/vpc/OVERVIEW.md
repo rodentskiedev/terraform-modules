@@ -285,11 +285,17 @@ dependency "network_acl" {
 }
 
 inputs = {
-  network_acl_rules = {
-    public-ingress-all  = { network_acl_id = dependency.network_acl.outputs.network_acls["public"].id,  rule_number = 100, egress = false, protocol = "-1", rule_action = "allow", cidr_block = "0.0.0.0/0" }
-    public-egress-all   = { network_acl_id = dependency.network_acl.outputs.network_acls["public"].id,  rule_number = 100, egress = true,  protocol = "-1", rule_action = "allow", cidr_block = "0.0.0.0/0" }
-    private-ingress-all = { network_acl_id = dependency.network_acl.outputs.network_acls["private"].id, rule_number = 100, egress = false, protocol = "-1", rule_action = "allow", cidr_block = "0.0.0.0/0" }
-    private-egress-all  = { network_acl_id = dependency.network_acl.outputs.network_acls["private"].id, rule_number = 100, egress = true,  protocol = "-1", rule_action = "allow", cidr_block = "0.0.0.0/0" }
+  public_network_acl_id  = dependency.network_acl.outputs.network_acls["public"].id
+  private_network_acl_id = dependency.network_acl.outputs.network_acls["private"].id
+
+  public_rules = {
+    ingress-all = { rule_number = 100, egress = false, protocol = "-1", rule_action = "allow", cidr_block = "0.0.0.0/0" }
+    egress-all  = { rule_number = 100, egress = true,  protocol = "-1", rule_action = "allow", cidr_block = "0.0.0.0/0" }
+  }
+
+  private_rules = {
+    ingress-all = { rule_number = 100, egress = false, protocol = "-1", rule_action = "allow", cidr_block = "0.0.0.0/0" }
+    egress-all  = { rule_number = 100, egress = true,  protocol = "-1", rule_action = "allow", cidr_block = "0.0.0.0/0" }
   }
 }
 ```
