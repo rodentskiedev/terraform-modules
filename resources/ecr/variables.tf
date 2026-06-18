@@ -14,3 +14,15 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+
+variable "project" {
+  description = "AWS region to use for the provider."
+  type        = string
+}
+
+variable "environment" {
+  description = "AWS region to use for the provider."
+  type        = string
+  default     = "develop"
+}

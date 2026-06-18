@@ -7,7 +7,7 @@ locals {
 resource "aws_ecr_repository" "this" {
   for_each = local.repositories
 
-  name                 = each.key
+  name                 = "${var.project}-${each.key}-${var.environment}"
   image_tag_mutability = try(each.value.image_tag_mutability, "MUTABLE")
   force_delete         = try(each.value.force_delete, false)
 
@@ -15,7 +15,9 @@ resource "aws_ecr_repository" "this" {
     scan_on_push = try(each.value.scan_on_push, true)
   }
 
-  tags = var.tags
+  tags = merge(var.tags,
+    { Name = "${var.project}-${each.key}-${var.environment}" }
+  )
 }
 
 resource "aws_ecr_lifecycle_policy" "this" {
