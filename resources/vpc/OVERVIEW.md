@@ -33,3 +33,291 @@ Overview of the VPC network modules and their relationships.
 | `aws_network_acl_rule` | No | Rules live on the NACL, not per AZ. |
 
 > **Note:** The number of AZs is controlled entirely by the caller — pass 2 entries in the subnet/eip/nat_gateway maps for 2 AZs, 3 for 3. No module changes required.
+
+## Sample Terragrunt Usage — MVP (Non-Live, 2 AZ, 1 NAT GW)
+
+---
+
+### `vpc/terragrunt.hcl`
+
+```hcl
+terraform {
+  source = "git::https://github.com/<org>/terraform-modules.git//resources/vpc/vpc?ref=v0.0.x"
+}
+
+inputs = {
+  vpcs = {
+    main = {
+      cidr_block = "10.0.0.0/16"
+      tags       = { Name = "main", Environment = "dev" }
+    }
+  }
+}
+```
+
+---
+
+### `subnet/terragrunt.hcl`
+
+```hcl
+terraform {
+  source = "git::https://github.com/<org>/terraform-modules.git//resources/vpc/subnet?ref=v0.0.x"
+}
+
+dependency "vpc" {
+  config_path = "../vpc"
+}
+
+inputs = {
+  subnets = {
+    public-az-a = {
+      vpc_id                  = dependency.vpc.outputs.vpcs["main"].id
+      cidr_block              = "10.0.1.0/24"
+      availability_zone       = "ap-southeast-1a"
+      map_public_ip_on_launch = true
+      tags                    = { Name = "public-az-a", Environment = "dev" }
+    }
+    public-az-b = {
+      vpc_id                  = dependency.vpc.outputs.vpcs["main"].id
+      cidr_block              = "10.0.2.0/24"
+      availability_zone       = "ap-southeast-1b"
+      map_public_ip_on_launch = true
+      tags                    = { Name = "public-az-b", Environment = "dev" }
+    }
+    private-az-a = {
+      vpc_id            = dependency.vpc.outputs.vpcs["main"].id
+      cidr_block        = "10.0.10.0/24"
+      availability_zone = "ap-southeast-1a"
+      tags              = { Name = "private-az-a", Environment = "dev" }
+    }
+    private-az-b = {
+      vpc_id            = dependency.vpc.outputs.vpcs["main"].id
+      cidr_block        = "10.0.11.0/24"
+      availability_zone = "ap-southeast-1b"
+      tags              = { Name = "private-az-b", Environment = "dev" }
+    }
+  }
+}
+```
+
+---
+
+### `internet_gateway/terragrunt.hcl`
+
+```hcl
+terraform {
+  source = "git::https://github.com/<org>/terraform-modules.git//resources/vpc/internet_gateway?ref=v0.0.x"
+}
+
+dependency "vpc" {
+  config_path = "../vpc"
+}
+
+inputs = {
+  internet_gateways = {
+    main = {
+      vpc_id = dependency.vpc.outputs.vpcs["main"].id
+      tags   = { Name = "main", Environment = "dev" }
+    }
+  }
+}
+```
+
+---
+
+### `eip/terragrunt.hcl`
+> 1 EIP only — shared NAT GW for non-live
+
+```hcl
+terraform {
+  source = "git::https://github.com/<org>/terraform-modules.git//resources/vpc/eip?ref=v0.0.x"
+}
+
+inputs = {
+  eips = {
+    nat = {
+      tags = { Name = "nat", Environment = "dev" }
+    }
+  }
+}
+```
+
+---
+
+### `nat_gateway/terragrunt.hcl`
+> 1 NAT GW in az-a — both AZs share it
+
+```hcl
+terraform {
+  source = "git::https://github.com/<org>/terraform-modules.git//resources/vpc/nat_gateway?ref=v0.0.x"
+}
+
+dependency "eip" {
+  config_path = "../eip"
+}
+
+dependency "subnet" {
+  config_path = "../subnet"
+}
+
+dependency "internet_gateway" {
+  config_path = "../internet_gateway"
+}
+
+inputs = {
+  nat_gateways = {
+    main = {
+      allocation_id = dependency.eip.outputs.eips["nat"].allocation_id
+      subnet_id     = dependency.subnet.outputs.subnets["public-az-a"].id
+      tags          = { Name = "main", Environment = "dev" }
+    }
+  }
+}
+```
+
+---
+
+### `route_table/terragrunt.hcl`
+> 1 public table, 1 shared private table (both private subnets use it)
+
+```hcl
+terraform {
+  source = "git::https://github.com/<org>/terraform-modules.git//resources/vpc/route_table?ref=v0.0.x"
+}
+
+dependency "vpc" {
+  config_path = "../vpc"
+}
+
+dependency "internet_gateway" {
+  config_path = "../internet_gateway"
+}
+
+dependency "nat_gateway" {
+  config_path = "../nat_gateway"
+}
+
+inputs = {
+  route_tables = {
+    public = {
+      vpc_id = dependency.vpc.outputs.vpcs["main"].id
+      routes = {
+        default = {
+          cidr_block = "0.0.0.0/0"
+          gateway_id = dependency.internet_gateway.outputs.internet_gateways["main"].id
+        }
+      }
+      tags = { Name = "public", Environment = "dev" }
+    }
+    private = {
+      vpc_id = dependency.vpc.outputs.vpcs["main"].id
+      routes = {
+        default = {
+          cidr_block     = "0.0.0.0/0"
+          nat_gateway_id = dependency.nat_gateway.outputs.nat_gateways["main"].id
+        }
+      }
+      tags = { Name = "private", Environment = "dev" }
+    }
+  }
+}
+```
+
+---
+
+### `route_table_association/terragrunt.hcl`
+> Both private subnets point to the same private route table
+
+```hcl
+terraform {
+  source = "git::https://github.com/<org>/terraform-modules.git//resources/vpc/route_table_association?ref=v0.0.x"
+}
+
+dependency "subnet" {
+  config_path = "../subnet"
+}
+
+dependency "route_table" {
+  config_path = "../route_table"
+}
+
+inputs = {
+  route_table_associations = {
+    public-az-a  = { subnet_id = dependency.subnet.outputs.subnets["public-az-a"].id,  route_table_id = dependency.route_table.outputs.route_tables["public"].id }
+    public-az-b  = { subnet_id = dependency.subnet.outputs.subnets["public-az-b"].id,  route_table_id = dependency.route_table.outputs.route_tables["public"].id }
+    private-az-a = { subnet_id = dependency.subnet.outputs.subnets["private-az-a"].id, route_table_id = dependency.route_table.outputs.route_tables["private"].id }
+    private-az-b = { subnet_id = dependency.subnet.outputs.subnets["private-az-b"].id, route_table_id = dependency.route_table.outputs.route_tables["private"].id }
+  }
+}
+```
+
+---
+
+### `network_acl/terragrunt.hcl`
+
+```hcl
+terraform {
+  source = "git::https://github.com/<org>/terraform-modules.git//resources/vpc/network_acl?ref=v0.0.x"
+}
+
+dependency "vpc" {
+  config_path = "../vpc"
+}
+
+inputs = {
+  network_acls = {
+    public  = { vpc_id = dependency.vpc.outputs.vpcs["main"].id, tags = { Name = "public",  Environment = "dev" } }
+    private = { vpc_id = dependency.vpc.outputs.vpcs["main"].id, tags = { Name = "private", Environment = "dev" } }
+  }
+}
+```
+
+---
+
+### `network_acl_association/terragrunt.hcl`
+
+```hcl
+terraform {
+  source = "git::https://github.com/<org>/terraform-modules.git//resources/vpc/network_acl_association?ref=v0.0.x"
+}
+
+dependency "subnet" {
+  config_path = "../subnet"
+}
+
+dependency "network_acl" {
+  config_path = "../network_acl"
+}
+
+inputs = {
+  network_acl_associations = {
+    public-az-a  = { network_acl_id = dependency.network_acl.outputs.network_acls["public"].id,  subnet_id = dependency.subnet.outputs.subnets["public-az-a"].id }
+    public-az-b  = { network_acl_id = dependency.network_acl.outputs.network_acls["public"].id,  subnet_id = dependency.subnet.outputs.subnets["public-az-b"].id }
+    private-az-a = { network_acl_id = dependency.network_acl.outputs.network_acls["private"].id, subnet_id = dependency.subnet.outputs.subnets["private-az-a"].id }
+    private-az-b = { network_acl_id = dependency.network_acl.outputs.network_acls["private"].id, subnet_id = dependency.subnet.outputs.subnets["private-az-b"].id }
+  }
+}
+```
+
+---
+
+### `network_acl_rule/terragrunt.hcl`
+
+```hcl
+terraform {
+  source = "git::https://github.com/<org>/terraform-modules.git//resources/vpc/network_acl_rule?ref=v0.0.x"
+}
+
+dependency "network_acl" {
+  config_path = "../network_acl"
+}
+
+inputs = {
+  network_acl_rules = {
+    public-ingress-all  = { network_acl_id = dependency.network_acl.outputs.network_acls["public"].id,  rule_number = 100, egress = false, protocol = "-1", rule_action = "allow", cidr_block = "0.0.0.0/0" }
+    public-egress-all   = { network_acl_id = dependency.network_acl.outputs.network_acls["public"].id,  rule_number = 100, egress = true,  protocol = "-1", rule_action = "allow", cidr_block = "0.0.0.0/0" }
+    private-ingress-all = { network_acl_id = dependency.network_acl.outputs.network_acls["private"].id, rule_number = 100, egress = false, protocol = "-1", rule_action = "allow", cidr_block = "0.0.0.0/0" }
+    private-egress-all  = { network_acl_id = dependency.network_acl.outputs.network_acls["private"].id, rule_number = 100, egress = true,  protocol = "-1", rule_action = "allow", cidr_block = "0.0.0.0/0" }
+  }
+}
+```
