@@ -4,6 +4,17 @@ variable "region" {
   default     = "ap-southeast-1"
 }
 
+variable "project" {
+  description = "AWS region to use for the provider."
+  type        = string
+}
+
+variable "environment" {
+  description = "AWS region to use for the provider."
+  type        = string
+  default     = "develop"
+}
+
 variable "vpc_id" {
   description = "ID of the VPC to create subnets in."
   type        = string
