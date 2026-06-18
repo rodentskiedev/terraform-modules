@@ -1,6 +1,6 @@
 # resources/vpc/network_acl_association
 
-Associates subnets with Network ACLs. Each subnet can only be associated with one NACL at a time — associating a new NACL replaces the existing one. Create one entry per subnet.
+Associates subnets with Network ACLs. Accepts the subnet module outputs directly and computes all associations internally — public subnets are wired to the public NACL, private subnets to the private NACL.
 
 ## Sample Terragrunt Usage
 
@@ -18,24 +18,10 @@ dependency "network_acl" {
 }
 
 inputs = {
-  network_acl_associations = {
-    public-az-a = {
-      network_acl_id = dependency.network_acl.outputs.network_acls["public"].id
-      subnet_id      = dependency.subnet.outputs.public_subnets["ap-southeast-1a"].id
-    }
-    public-az-b = {
-      network_acl_id = dependency.network_acl.outputs.network_acls["public"].id
-      subnet_id      = dependency.subnet.outputs.public_subnets["ap-southeast-1b"].id
-    }
-    private-az-a = {
-      network_acl_id = dependency.network_acl.outputs.network_acls["private"].id
-      subnet_id      = dependency.subnet.outputs.private_subnets["ap-southeast-1a"].id
-    }
-    private-az-b = {
-      network_acl_id = dependency.network_acl.outputs.network_acls["private"].id
-      subnet_id      = dependency.subnet.outputs.private_subnets["ap-southeast-1b"].id
-    }
-  }
+  public_subnets         = dependency.subnet.outputs.public_subnets
+  private_subnets        = dependency.subnet.outputs.private_subnets
+  public_network_acl_id  = dependency.network_acl.outputs.network_acls["public"].id
+  private_network_acl_id = dependency.network_acl.outputs.network_acls["private"].id
 }
 ```
 
@@ -44,9 +30,10 @@ inputs = {
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|----------|
 | region | AWS region to use for the provider. | `string` | `"ap-southeast-1"` | no |
-| network_acl_associations | Map of Network ACL associations to create. The key is used as a unique identifier. | `map(object({...}))` | n/a | yes |
-| network_acl_associations.network_acl_id | ID of the Network ACL to associate. | `string` | n/a | yes |
-| network_acl_associations.subnet_id | ID of the subnet to associate with the Network ACL. | `string` | n/a | yes |
+| public_subnets | Public subnet map from the subnet module output. | `map(object({...}))` | n/a | yes |
+| private_subnets | Private subnet map from the subnet module output. | `map(object({...}))` | n/a | yes |
+| public_network_acl_id | ID of the Network ACL to associate with public subnets. | `string` | n/a | yes |
+| private_network_acl_id | ID of the Network ACL to associate with private subnets. | `string` | n/a | yes |
 
 ## Outputs
 

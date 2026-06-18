@@ -4,10 +4,32 @@ variable "region" {
   default     = "ap-southeast-1"
 }
 
-variable "network_acl_associations" {
-  description = "Map of Network ACL associations to create. The key is used as a unique identifier."
+variable "public_subnets" {
+  description = "Map of AZ name to public subnet attributes. Pass the public_subnets output from the subnet module directly."
   type = map(object({
-    network_acl_id = string
-    subnet_id      = string
+    id                = string
+    cidr_block        = string
+    availability_zone = string
+    vpc_id            = string
   }))
+}
+
+variable "private_subnets" {
+  description = "Map of AZ name to private subnet attributes. Pass the private_subnets output from the subnet module directly."
+  type = map(object({
+    id                = string
+    cidr_block        = string
+    availability_zone = string
+    vpc_id            = string
+  }))
+}
+
+variable "public_network_acl_id" {
+  description = "ID of the Network ACL to associate with public subnets."
+  type        = string
+}
+
+variable "private_network_acl_id" {
+  description = "ID of the Network ACL to associate with private subnets."
+  type        = string
 }
