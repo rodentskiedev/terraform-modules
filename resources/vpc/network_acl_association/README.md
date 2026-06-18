@@ -21,19 +21,19 @@ inputs = {
   network_acl_associations = {
     public-az-a = {
       network_acl_id = dependency.network_acl.outputs.network_acls["public"].id
-      subnet_id      = dependency.subnet.outputs.subnets["public-az-a"].id
+      subnet_id      = dependency.subnet.outputs.public_subnets["ap-southeast-1a"].id
     }
     public-az-b = {
       network_acl_id = dependency.network_acl.outputs.network_acls["public"].id
-      subnet_id      = dependency.subnet.outputs.subnets["public-az-b"].id
+      subnet_id      = dependency.subnet.outputs.public_subnets["ap-southeast-1b"].id
     }
     private-az-a = {
       network_acl_id = dependency.network_acl.outputs.network_acls["private"].id
-      subnet_id      = dependency.subnet.outputs.subnets["private-az-a"].id
+      subnet_id      = dependency.subnet.outputs.private_subnets["ap-southeast-1a"].id
     }
     private-az-b = {
       network_acl_id = dependency.network_acl.outputs.network_acls["private"].id
-      subnet_id      = dependency.subnet.outputs.subnets["private-az-b"].id
+      subnet_id      = dependency.subnet.outputs.private_subnets["ap-southeast-1b"].id
     }
   }
 }

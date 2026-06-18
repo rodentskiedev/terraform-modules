@@ -25,14 +25,14 @@ inputs = {
   nat_gateways = {
     az-a = {
       allocation_id = dependency.eip.outputs.eips["nat-az-a"].allocation_id
-      subnet_id     = dependency.subnet.outputs.subnets["public-az-a"].id
+      subnet_id     = dependency.subnet.outputs.public_subnets["ap-southeast-1a"].id
       tags = {
         Environment = "production"
       }
     }
     az-b = {
       allocation_id = dependency.eip.outputs.eips["nat-az-b"].allocation_id
-      subnet_id     = dependency.subnet.outputs.subnets["public-az-b"].id
+      subnet_id     = dependency.subnet.outputs.public_subnets["ap-southeast-1b"].id
       tags = {
         Environment = "production"
       }

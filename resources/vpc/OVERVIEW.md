@@ -69,34 +69,10 @@ dependency "vpc" {
 }
 
 inputs = {
-  subnets = {
-    public-az-a = {
-      vpc_id                  = dependency.vpc.outputs.vpcs["main"].id
-      cidr_block              = "10.0.1.0/24"
-      availability_zone       = "ap-southeast-1a"
-      map_public_ip_on_launch = true
-      tags                    = { Name = "public-az-a", Environment = "dev" }
-    }
-    public-az-b = {
-      vpc_id                  = dependency.vpc.outputs.vpcs["main"].id
-      cidr_block              = "10.0.2.0/24"
-      availability_zone       = "ap-southeast-1b"
-      map_public_ip_on_launch = true
-      tags                    = { Name = "public-az-b", Environment = "dev" }
-    }
-    private-az-a = {
-      vpc_id            = dependency.vpc.outputs.vpcs["main"].id
-      cidr_block        = "10.0.10.0/24"
-      availability_zone = "ap-southeast-1a"
-      tags              = { Name = "private-az-a", Environment = "dev" }
-    }
-    private-az-b = {
-      vpc_id            = dependency.vpc.outputs.vpcs["main"].id
-      cidr_block        = "10.0.11.0/24"
-      availability_zone = "ap-southeast-1b"
-      tags              = { Name = "private-az-b", Environment = "dev" }
-    }
-  }
+  vpc_id        = dependency.vpc.outputs.vpcs["main"].id
+  public_cidrs  = ["10.0.1.0/24", "10.0.2.0/24"]
+  private_cidrs = ["10.0.10.0/24", "10.0.11.0/24"]
+  tags          = { Environment = "dev" }
 }
 ```
 
@@ -168,7 +144,7 @@ inputs = {
   nat_gateways = {
     main = {
       allocation_id = dependency.eip.outputs.eips["nat"].allocation_id
-      subnet_id     = dependency.subnet.outputs.subnets["public-az-a"].id
+      subnet_id     = dependency.subnet.outputs.public_subnets["ap-southeast-1a"].id
       tags          = { Name = "main", Environment = "dev" }
     }
   }
@@ -243,10 +219,10 @@ dependency "route_table" {
 
 inputs = {
   route_table_associations = {
-    public-az-a  = { subnet_id = dependency.subnet.outputs.subnets["public-az-a"].id,  route_table_id = dependency.route_table.outputs.route_tables["public"].id }
-    public-az-b  = { subnet_id = dependency.subnet.outputs.subnets["public-az-b"].id,  route_table_id = dependency.route_table.outputs.route_tables["public"].id }
-    private-az-a = { subnet_id = dependency.subnet.outputs.subnets["private-az-a"].id, route_table_id = dependency.route_table.outputs.route_tables["private"].id }
-    private-az-b = { subnet_id = dependency.subnet.outputs.subnets["private-az-b"].id, route_table_id = dependency.route_table.outputs.route_tables["private"].id }
+    public-az-a  = { subnet_id = dependency.subnet.outputs.public_subnets["ap-southeast-1a"].id,  route_table_id = dependency.route_table.outputs.route_tables["public"].id }
+    public-az-b  = { subnet_id = dependency.subnet.outputs.public_subnets["ap-southeast-1b"].id,  route_table_id = dependency.route_table.outputs.route_tables["public"].id }
+    private-az-a = { subnet_id = dependency.subnet.outputs.private_subnets["ap-southeast-1a"].id, route_table_id = dependency.route_table.outputs.route_tables["private"].id }
+    private-az-b = { subnet_id = dependency.subnet.outputs.private_subnets["ap-southeast-1b"].id, route_table_id = dependency.route_table.outputs.route_tables["private"].id }
   }
 }
 ```
@@ -291,10 +267,10 @@ dependency "network_acl" {
 
 inputs = {
   network_acl_associations = {
-    public-az-a  = { network_acl_id = dependency.network_acl.outputs.network_acls["public"].id,  subnet_id = dependency.subnet.outputs.subnets["public-az-a"].id }
-    public-az-b  = { network_acl_id = dependency.network_acl.outputs.network_acls["public"].id,  subnet_id = dependency.subnet.outputs.subnets["public-az-b"].id }
-    private-az-a = { network_acl_id = dependency.network_acl.outputs.network_acls["private"].id, subnet_id = dependency.subnet.outputs.subnets["private-az-a"].id }
-    private-az-b = { network_acl_id = dependency.network_acl.outputs.network_acls["private"].id, subnet_id = dependency.subnet.outputs.subnets["private-az-b"].id }
+    public-az-a  = { network_acl_id = dependency.network_acl.outputs.network_acls["public"].id,  subnet_id = dependency.subnet.outputs.public_subnets["ap-southeast-1a"].id }
+    public-az-b  = { network_acl_id = dependency.network_acl.outputs.network_acls["public"].id,  subnet_id = dependency.subnet.outputs.public_subnets["ap-southeast-1b"].id }
+    private-az-a = { network_acl_id = dependency.network_acl.outputs.network_acls["private"].id, subnet_id = dependency.subnet.outputs.private_subnets["ap-southeast-1a"].id }
+    private-az-b = { network_acl_id = dependency.network_acl.outputs.network_acls["private"].id, subnet_id = dependency.subnet.outputs.private_subnets["ap-southeast-1b"].id }
   }
 }
 ```

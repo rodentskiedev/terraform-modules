@@ -1,6 +1,8 @@
 # resources/vpc/subnet
 
-Creates one or more AWS subnets within a VPC. Each subnet is scoped to a single availability zone. Pass one entry per AZ to spread subnets across multiple AZs. Public subnets should set `map_public_ip_on_launch = true`.
+Creates public and private subnets within a VPC. Subnets are automatically assigned to availability zones in order — the first CIDR maps to the first available AZ, the second to the second, and so on. At least 2 CIDR blocks are required per type to enforce multi-AZ coverage.
+
+See `config/config.yml` for the reference YAML format when driving inputs from a config file in the Terragrunt repo.
 
 ## Sample Terragrunt Usage
 
@@ -14,34 +16,25 @@ dependency "vpc" {
 }
 
 inputs = {
-  subnets = {
-    public-az-a = {
-      vpc_id                  = dependency.vpc.outputs.vpcs["main"].id
-      cidr_block              = "10.0.1.0/24"
-      availability_zone       = "ap-southeast-1a"
-      map_public_ip_on_launch = true
-      tags                    = { Name = "public-az-a", Environment = "production" }
-    }
-    public-az-b = {
-      vpc_id                  = dependency.vpc.outputs.vpcs["main"].id
-      cidr_block              = "10.0.2.0/24"
-      availability_zone       = "ap-southeast-1b"
-      map_public_ip_on_launch = true
-      tags                    = { Name = "public-az-b", Environment = "production" }
-    }
-    private-az-a = {
-      vpc_id            = dependency.vpc.outputs.vpcs["main"].id
-      cidr_block        = "10.0.10.0/24"
-      availability_zone = "ap-southeast-1a"
-      tags              = { Name = "private-az-a", Environment = "production" }
-    }
-    private-az-b = {
-      vpc_id            = dependency.vpc.outputs.vpcs["main"].id
-      cidr_block        = "10.0.11.0/24"
-      availability_zone = "ap-southeast-1b"
-      tags              = { Name = "private-az-b", Environment = "production" }
-    }
-  }
+  vpc_id        = dependency.vpc.outputs.vpcs["main"].id
+  public_cidrs  = ["10.0.1.0/24", "10.0.2.0/24"]
+  private_cidrs = ["10.0.10.0/24", "10.0.11.0/24"]
+  tags          = { Environment = "dev" }
+}
+```
+
+### Driven from config.yml (Terragrunt repo)
+
+```hcl
+locals {
+  config = yamldecode(file("${get_terragrunt_dir()}/config.yml"))
+}
+
+inputs = {
+  vpc_id        = dependency.vpc.outputs.vpcs["main"].id
+  public_cidrs  = local.config.subnets.public.cidr_blocks
+  private_cidrs = local.config.subnets.private.cidr_blocks
+  tags          = { Environment = "dev" }
 }
 ```
 
@@ -50,15 +43,14 @@ inputs = {
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|----------|
 | region | AWS region to use for the provider. | `string` | `"ap-southeast-1"` | no |
-| subnets | Map of subnets to create. The key is used as a unique identifier. | `map(object({...}))` | n/a | yes |
-| subnets.vpc_id | ID of the VPC to create the subnet in. | `string` | n/a | yes |
-| subnets.cidr_block | CIDR block for the subnet. | `string` | n/a | yes |
-| subnets.availability_zone | Availability zone for the subnet. | `string` | n/a | yes |
-| subnets.map_public_ip_on_launch | Whether to assign a public IP to instances launched in this subnet. | `bool` | `false` | no |
-| subnets.tags | Tags to apply to the subnet. | `map(string)` | `{}` | no |
+| vpc_id | ID of the VPC to create subnets in. | `string` | n/a | yes |
+| public_cidrs | List of CIDR blocks for public subnets. Minimum 2. | `list(string)` | n/a | yes |
+| private_cidrs | List of CIDR blocks for private subnets. Minimum 2. | `list(string)` | n/a | yes |
+| tags | Tags applied to all subnets. A `Name` tag is auto-generated per subnet using the AZ name. | `map(string)` | `{}` | no |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| subnets | Map of subnet key to subnet attributes (id, cidr_block, availability_zone, vpc_id). |
+| public_subnets | Map of AZ name to public subnet attributes (id, cidr_block, availability_zone, vpc_id). |
+| private_subnets | Map of AZ name to private subnet attributes (id, cidr_block, availability_zone, vpc_id). |

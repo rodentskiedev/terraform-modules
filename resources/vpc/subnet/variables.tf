@@ -4,13 +4,33 @@ variable "region" {
   default     = "ap-southeast-1"
 }
 
-variable "subnets" {
-  description = "Map of subnets to create. The key is used as a unique identifier."
-  type = map(object({
-    vpc_id                  = string
-    cidr_block              = string
-    availability_zone       = string
-    map_public_ip_on_launch = optional(bool, false)
-    tags                    = optional(map(string), {})
-  }))
+variable "vpc_id" {
+  description = "ID of the VPC to create subnets in."
+  type        = string
+}
+
+variable "public_cidrs" {
+  description = "List of CIDR blocks for public subnets. One subnet is created per entry, assigned to AZs in order. Minimum 2."
+  type        = list(string)
+
+  validation {
+    condition     = length(var.public_cidrs) >= 2
+    error_message = "At least 2 public CIDR blocks are required for a multi-AZ setup."
+  }
+}
+
+variable "private_cidrs" {
+  description = "List of CIDR blocks for private subnets. One subnet is created per entry, assigned to AZs in order. Minimum 2."
+  type        = list(string)
+
+  validation {
+    condition     = length(var.private_cidrs) >= 2
+    error_message = "At least 2 private CIDR blocks are required for a multi-AZ setup."
+  }
+}
+
+variable "tags" {
+  description = "Tags to apply to all subnets."
+  type        = map(string)
+  default     = {}
 }
