@@ -218,12 +218,10 @@ dependency "route_table" {
 }
 
 inputs = {
-  route_table_associations = {
-    public-az-a  = { subnet_id = dependency.subnet.outputs.public_subnets["ap-southeast-1a"].id,  route_table_id = dependency.route_table.outputs.route_tables["public"].id }
-    public-az-b  = { subnet_id = dependency.subnet.outputs.public_subnets["ap-southeast-1b"].id,  route_table_id = dependency.route_table.outputs.route_tables["public"].id }
-    private-az-a = { subnet_id = dependency.subnet.outputs.private_subnets["ap-southeast-1a"].id, route_table_id = dependency.route_table.outputs.route_tables["private"].id }
-    private-az-b = { subnet_id = dependency.subnet.outputs.private_subnets["ap-southeast-1b"].id, route_table_id = dependency.route_table.outputs.route_tables["private"].id }
-  }
+  public_subnets         = dependency.subnet.outputs.public_subnets
+  private_subnets        = dependency.subnet.outputs.private_subnets
+  public_route_table_id  = dependency.route_table.outputs.route_tables["public"].id
+  private_route_table_id = dependency.route_table.outputs.route_tables["private"].id
 }
 ```
 
