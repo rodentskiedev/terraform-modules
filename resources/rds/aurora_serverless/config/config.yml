@@ -1,0 +1,12 @@
+clusters:
+  main:
+    engine: aurora-postgresql
+    engine_version: "16.4"
+    database_name: myapp
+    master_username: admin
+    min_capacity: 0.5
+    max_capacity: 8
+    instances: 1
+    backup_retention_period: 7
+    deletion_protection: false
+    skip_final_snapshot: true
