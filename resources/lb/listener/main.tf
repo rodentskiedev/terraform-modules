@@ -19,6 +19,15 @@ resource "aws_lb_listener" "this" {
         status_code = try(each.value.default_action.redirect.status_code, "HTTP_301")
       }
     }
+
+    dynamic "fixed_response" {
+      for_each = each.value.default_action.type == "fixed-response" ? [1] : []
+      content {
+        content_type = each.value.default_action.fixed_response.content_type
+        message_body = try(each.value.default_action.fixed_response.message_body, null)
+        status_code  = try(each.value.default_action.fixed_response.status_code, "200")
+      }
+    }
   }
 
   tags = merge(var.tags, {

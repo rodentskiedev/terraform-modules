@@ -37,6 +37,11 @@ variable "listeners" {
         protocol    = optional(string, "HTTPS")
         status_code = optional(string, "HTTP_301")
       }))
+      fixed_response = optional(object({
+        content_type = string
+        message_body = optional(string)
+        status_code  = optional(string, "200")
+      }))
     })
   }))
 }
