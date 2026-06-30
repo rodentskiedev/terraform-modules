@@ -1,0 +1,52 @@
+locals {
+  config     = yamldecode(file(var.config_file))
+  config_dir = dirname(var.config_file)
+  roles      = local.config.roles
+
+  inline_policies = merge([
+    for role_key, role in local.roles : {
+      for policy_key, policy in try(role.inline_policies, {}) :
+      "${role_key}:${policy_key}" => {
+        role_key   = role_key
+        policy_key = policy_key
+        policy     = try(policy.policy_json, file("${local.config_dir}/${policy.policy_file}"))
+      }
+    }
+  ]...)
+
+  policy_attachments = merge([
+    for role_key, role in local.roles : {
+      for arn in try(role.managed_policy_arns, []) :
+      "${role_key}:${arn}" => {
+        role_key   = role_key
+        policy_arn = arn
+      }
+    }
+  ]...)
+}
+
+resource "aws_iam_role" "this" {
+  for_each = local.roles
+
+  name               = "${var.project}-${each.key}-${var.environment}"
+  assume_role_policy = file("${local.config_dir}/${each.value.assume_role_policy}")
+
+  tags = merge(var.tags, try(each.value.tags, {}), {
+    Name = "${var.project}-${each.key}-${var.environment}"
+  })
+}
+
+resource "aws_iam_role_policy" "this" {
+  for_each = local.inline_policies
+
+  name   = each.value.policy_key
+  role   = aws_iam_role.this[each.value.role_key].name
+  policy = each.value.policy
+}
+
+resource "aws_iam_role_policy_attachment" "this" {
+  for_each = local.policy_attachments
+
+  role       = aws_iam_role.this[each.value.role_key].name
+  policy_arn = each.value.policy_arn
+}

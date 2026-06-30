@@ -1,0 +1,6 @@
+policies:
+  s3_read:
+    description: "Grants read access to S3 buckets."
+    policy_file: s3_read.json
+    tags:
+      Component: storage
