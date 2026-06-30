@@ -4,6 +4,8 @@ Creates one or more Application Load Balancers. Each ALB is internet-facing by d
 
 ## Sample Terragrunt Usage
 
+### Internet-facing ALB
+
 ```hcl
 terraform {
   source = "git::https://github.com/<org>/terraform-modules.git//resources/lb/alb?ref=v0.0.1"
@@ -13,8 +15,8 @@ include "root" {
   path = find_in_parent_folders()
 }
 
-dependency "vpc" {
-  config_path = "../vpc"
+dependency "subnet" {
+  config_path = "../subnet"
 }
 
 dependency "sg" {
@@ -29,7 +31,44 @@ inputs = {
     public = {
       internal           = false
       security_group_ids = [dependency.sg.outputs.security_groups["alb"].id]
-      subnet_ids         = values(dependency.vpc.outputs.public_subnets)[*].id
+      subnet_ids         = values(dependency.subnet.outputs.public_subnets)[*].id
+    }
+  }
+
+  tags = {
+    ManagedBy = "terraform"
+  }
+}
+```
+
+### Internal ALB
+
+```hcl
+terraform {
+  source = "git::https://github.com/<org>/terraform-modules.git//resources/lb/alb?ref=v0.0.1"
+}
+
+include "root" {
+  path = find_in_parent_folders()
+}
+
+dependency "subnet" {
+  config_path = "../subnet"
+}
+
+dependency "sg" {
+  config_path = "../security_group"
+}
+
+inputs = {
+  project     = "myapp"
+  environment = "production"
+
+  load_balancers = {
+    internal = {
+      internal           = true
+      security_group_ids = [dependency.sg.outputs.security_groups["alb-internal"].id]
+      subnet_ids         = values(dependency.subnet.outputs.private_subnets)[*].id
     }
   }
 
