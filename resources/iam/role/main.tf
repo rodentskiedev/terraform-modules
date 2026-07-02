@@ -3,13 +3,20 @@ locals {
   config_dir = dirname(var.config_file)
   roles      = local.config.roles
 
+  template_vars = {
+    region      = var.region
+    aws_account = data.aws_caller_identity.this.account_id
+    project     = var.project
+    environment = var.environment
+  }
+
   inline_policies = merge([
     for role_key, role in local.roles : {
       for policy_key, policy in try(role.inline_policies, {}) :
       "${role_key}:${policy_key}" => {
         role_key   = role_key
         policy_key = policy_key
-        policy     = try(policy.policy_json, file("${local.config_dir}/${policy.policy_file}"))
+        policy     = try(policy.policy_json, templatefile("${local.config_dir}/${policy.policy_file}", local.template_vars))
       }
     }
   ]...)
@@ -25,11 +32,13 @@ locals {
   ]...)
 }
 
+data "aws_caller_identity" "this" {}
+
 resource "aws_iam_role" "this" {
   for_each = local.roles
 
   name               = "${var.project}-${each.key}-${var.environment}"
-  assume_role_policy = file("${local.config_dir}/${each.value.assume_role_policy}")
+  assume_role_policy = templatefile("${local.config_dir}/${each.value.assume_role_policy}", local.template_vars)
 
   tags = merge(var.tags, try(each.value.tags, {}), {
     Name = "${var.project}-${each.key}-${var.environment}"

@@ -1,6 +1,6 @@
 # resources/iam/role
 
-Creates one or more IAM roles from a YAML config file. Each role requires a trust policy JSON file (assume role policy). Optionally attach inline policies — provided as a raw JSON string in the config or as a JSON filename resolved from the same `config/` directory — and attach managed policies by ARN.
+Creates one or more IAM roles from a YAML config file. Each role requires a trust policy JSON file (assume role policy). Optionally attach inline policies — provided as a raw JSON string in the config or as a JSON filename resolved from the same `config/` directory — and attach managed policies by ARN. Trust policy and inline policy files are rendered with `templatefile()`, so they may reference `${region}`, `${aws_account}`, `${project}`, and `${environment}` placeholders, populated from `var.region`, the calling account's `aws_caller_identity`, `var.project`, and `var.environment`.
 
 ## Sample Terragrunt Usage
 
@@ -97,7 +97,7 @@ roles:
 
 | Field | Description | Required |
 |-------|-------------|----------|
-| `assume_role_policy` | Filename of the trust policy JSON (resolved relative to the config file) | yes |
+| `assume_role_policy` | Filename of the trust policy JSON (resolved relative to the config file). Rendered with `templatefile()`; may reference `${region}`, `${aws_account}`, `${project}`, and `${environment}` | yes |
 | `inline_policies` | Map of inline policy name to `{ policy_file }` or `{ policy_json }` | no |
 | `managed_policy_arns` | List of managed policy ARNs to attach | no |
 | `tags` | Per-role tags merged with the module-level `tags` variable | no |
@@ -108,7 +108,7 @@ Exactly one of `policy_file` or `policy_json` must be provided per entry.
 
 | Field | Description |
 |-------|-------------|
-| `policy_file` | Filename of the policy JSON (resolved relative to the config file) |
+| `policy_file` | Filename of the policy JSON (resolved relative to the config file). Rendered with `templatefile()`; may reference `${region}`, `${aws_account}`, `${project}`, and `${environment}` |
 | `policy_json` | Raw JSON string of the policy document |
 
 ## Outputs

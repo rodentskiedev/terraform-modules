@@ -4,3 +4,8 @@ policies:
     policy_file: s3_read.json
     tags:
       Component: storage
+  rds_connect:
+    description: "Grants RDS IAM authentication connect access."
+    policy_file: rds_connect.json
+    tags:
+      Component: database
