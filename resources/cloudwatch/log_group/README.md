@@ -6,7 +6,7 @@ Creates one or more CloudWatch log groups. Use this to provision log destination
 
 ```hcl
 terraform {
-  source = "git::https://github.com/<org>/terraform-modules.git//resources/cloudwatch?ref=v0.0.1"
+  source = "git::https://github.com/<org>/terraform-modules.git//resources/cloudwatch/log_group?ref=v0.0.1"
 }
 
 include "root" {
