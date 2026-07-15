@@ -23,8 +23,8 @@ dependency "task_definition" {
   config_path = "../task_definition"
 }
 
-dependency "vpc" {
-  config_path = "../vpc"
+dependency "subnet" {
+  config_path = "../subnet"
 }
 
 dependency "sg" {
@@ -44,7 +44,7 @@ inputs = {
       cluster_arn         = dependency.cluster.outputs.clusters["main"].arn
       task_definition_arn = dependency.task_definition.outputs.task_definitions["app"].arn
       desired_count       = 2
-      subnet_ids          = values(dependency.vpc.outputs.private_subnets)[*].id
+      subnet_ids          = values(dependency.subnet.outputs.private_subnets)[*].id
       security_group_ids  = [dependency.sg.outputs.security_groups["app"].id]
 
       load_balancer = {
