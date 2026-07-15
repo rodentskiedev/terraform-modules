@@ -25,6 +25,7 @@ variable "log_groups" {
   description = "Map of CloudWatch log groups to create. The key is used as the name suffix and resource identifier."
   type = map(object({
     name              = string
+    prefix            = optional(string, "")
     retention_in_days = optional(number, 30)
     kms_key_id        = optional(string)
     tags              = optional(map(string), {})

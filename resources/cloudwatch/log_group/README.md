@@ -1,4 +1,4 @@
-# resources/cloudwatch
+# resources/cloudwatch/log_group
 
 Creates one or more CloudWatch log groups. Use this to provision log destinations for ECS tasks, Lambda functions, or any other service that writes logs to CloudWatch.
 
@@ -20,6 +20,7 @@ inputs = {
   log_groups = {
     api = {
       name              = "api"
+      prefix            = "/ecs/"
       retention_in_days = 14
     }
   }
@@ -44,7 +45,8 @@ inputs = {
 
 | Field | Description | Default |
 |-------|-------------|---------|
-| `name` | Name suffix used to build the log group name (`<project>-<name>-<environment>`) | required |
+| `name` | Name suffix used to build the log group name (`<prefix><project>-<name>-<environment>`) | required |
+| `prefix` | Prefix prepended to the log group name (e.g. `"/ecs/"`) | `""` |
 | `retention_in_days` | Number of days to retain log events | `30` |
 | `kms_key_id` | ARN of the KMS key to encrypt log data | `null` |
 | `tags` | Additional tags merged onto this log group | `{}` |
