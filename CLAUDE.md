@@ -64,6 +64,39 @@ resource "aws_acm_certificate" "this" {
 
 Use `optional(type, default)` for fields that have sensible defaults. Required fields have no default.
 
+### Config file vs. plain variable
+
+Two ways to express the primary input:
+
+- **Plain `map(object(...))` variable** (as above) — default choice. Use it when the module manages a single flat collection of similarly-shaped items (e.g. `resources/acm`, `resources/route53/hosted_zone`).
+- **`config_file` + `yamldecode`** — use instead when any of these apply:
+  - The config spans multiple related collections or nested sub-blocks (e.g. clusters *and* per-cluster instances, security groups *and* their ingress/egress rules).
+  - Entries need to reference external files, e.g. `templatefile()` for an IAM policy or assume-role document (see `resources/iam/role`).
+  - Expressing the shape as a single HCL `object(...)` type would be awkward or deeply nested.
+
+  ```hcl
+  # variables.tf
+  variable "config_file" {
+    description = "Path to the YAML configuration file defining <things>."
+    type        = string
+  }
+
+  # main.tf
+  locals {
+    config = yamldecode(file(var.config_file))
+    things = local.config.things
+  }
+
+  resource "aws_thing" "this" {
+    for_each = local.things
+    # ...
+  }
+  ```
+
+  The module directory gets a seventh item — a `config/` subdirectory holding a sample `config.yml` (and any referenced template files) — documented in the README alongside the other inputs. This is the one case where the "six files only" rule extends.
+
+Never load config values that are secrets (passwords, API keys) via `config_file`. Secrets are created and populated outside Terraform (see the no-auto-credentials convention below) and referenced only by ID/ARN.
+
 ### Region variable
 
 Every module declares the `region` variable and uses it in `provider.tf`. Do not hardcode a region anywhere else.
@@ -119,6 +152,30 @@ Only expose attributes that callers actually need. Do not output the full resour
 
 Modules never call other modules inside this repository. Cross-module data (e.g., an SSO instance ARN used by an account assignment) flows through Terragrunt `dependency` blocks in the calling repository.
 
+### Credentials are never auto-generated
+
+Modules never create, generate, or let AWS auto-manage secrets on their behalf — no `random_password`, no `manage_master_user_password = true`, no writing plaintext credentials into a config file or `tags`. Passwords and other credential material are created and populated manually in Secrets Manager outside Terraform.
+
+A module that needs credentials at apply time accepts a secret ID/ARN as input (per-item, via `config_file`, or as a plain variable) and reads it with a data source:
+
+```hcl
+data "aws_secretsmanager_secret_version" "this" {
+  for_each  = local.things
+  secret_id = each.value.credentials_secret_id
+}
+
+locals {
+  credentials = {
+    for key, version in data.aws_secretsmanager_secret_version.this :
+    key => jsondecode(version.secret_string)
+  }
+}
+```
+
+Terraform automatically propagates the sensitivity of `secret_string` to anything derived from it, so avoid outputting decoded credential fields directly — output the secret ID/ARN instead if callers need a reference back to it.
+
+Resource-level encryption (e.g. RDS storage encryption) still uses a KMS key managed by Terraform — see `resources/kms` — since a CMK is not a credential. Only the actual username/password/API-key material is out of Terraform's hands.
+
 ## Module README format
 
 Each module's `README.md` follows this structure:
@@ -162,7 +219,7 @@ terraform {
 1. Choose or create a group directory (`aws_sso/`, `data/`, `resources/`).
 2. Create the module directory with `snake_case` naming.
 3. Add all six required files.
-4. Follow the map-of-objects pattern for the primary input.
+4. Follow the map-of-objects pattern for the primary input (or the `config_file` pattern if it applies — see above).
 5. Name the primary resource `this`.
 6. Write the `README.md` using the format above.
 7. Run `terraform validate` and `terraform fmt` locally before opening a PR.

@@ -3,10 +3,39 @@ clusters:
     engine: aurora-postgresql
     engine_version: "16.4"
     database_name: myapp
-    master_username: admin
+    username_key: DB_USERNAME
+    password_key: DB_PASSWORD
     min_capacity: 0.5
     max_capacity: 8
     instances: 1
     backup_retention_period: 7
     deletion_protection: false
     skip_final_snapshot: true
+  test:
+    engine: aurora-postgresql
+    engine_version: "16.4"
+    database_name: myapp_test
+    username_key: DB_TEST_USERNAME
+    password_key: DB_TEST_PASSWORD
+    min_capacity: 0.5
+    max_capacity: 2
+    instances: 1
+    backup_retention_period: 1
+    deletion_protection: false
+    skip_final_snapshot: true
+  # Production: 2 instances (writer + reader), higher ceiling for traffic
+  # spikes, longer backup retention, and guarded against accidental deletion.
+  production:
+    engine: aurora-postgresql
+    engine_version: "16.4"
+    database_name: myapp_production
+    username_key: DB_PROD_USERNAME
+    password_key: DB_PROD_PASSWORD
+    min_capacity: 1
+    max_capacity: 16
+    instances: 2
+    backup_retention_period: 30
+    # Prevent `terraform destroy`/replacement from deleting the cluster.
+    deletion_protection: true
+    # Take a final snapshot instead of discarding data on deletion.
+    skip_final_snapshot: false

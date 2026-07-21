@@ -30,6 +30,16 @@ variable "security_group_ids" {
   type        = list(string)
 }
 
+variable "kms_key_id" {
+  description = "ARN of the KMS key used to encrypt cluster storage. Typically sourced from the resources/kms module via a Terragrunt dependency block."
+  type        = string
+}
+
+variable "credentials_secret_id" {
+  description = "Name or ARN of the single Secrets Manager secret holding master credentials for all clusters as flat JSON keys (e.g. DB_USERNAME, DB_PASSWORD). Created and populated manually, outside Terraform. Each cluster in config_file selects its pair via username_key/password_key."
+  type        = string
+}
+
 variable "tags" {
   description = "Tags applied to all resources."
   type        = map(string)

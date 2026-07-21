@@ -11,6 +11,18 @@ locals {
   ]...)
 }
 
+# Master usernames/passwords are never generated or stored by Terraform. A
+# single secret (var.credentials_secret_id) holds every cluster's credentials
+# as flat JSON keys (e.g. DB_USERNAME, DB_PASSWORD, DB_TEST_USERNAME, ...).
+# Each cluster picks its pair via username_key/password_key.
+data "aws_secretsmanager_secret_version" "master" {
+  secret_id = var.credentials_secret_id
+}
+
+locals {
+  secret_values = jsondecode(data.aws_secretsmanager_secret_version.master.secret_string)
+}
+
 resource "aws_db_subnet_group" "this" {
   for_each = local.clusters
 
@@ -26,13 +38,16 @@ resource "aws_db_subnet_group" "this" {
 resource "aws_rds_cluster" "this" {
   for_each = local.clusters
 
-  cluster_identifier          = "${var.project}-${each.key}-${var.environment}"
-  engine                      = try(each.value.engine, "aurora-postgresql")
-  engine_version              = each.value.engine_version
-  engine_mode                 = "provisioned"
-  database_name               = each.value.database_name
-  master_username             = each.value.master_username
-  manage_master_user_password = true
+  cluster_identifier = "${var.project}-${each.key}-${var.environment}"
+  engine             = try(each.value.engine, "aurora-postgresql")
+  engine_version     = each.value.engine_version
+  engine_mode        = "provisioned"
+  database_name      = each.value.database_name
+  master_username    = local.secret_values[each.value.username_key]
+  master_password    = local.secret_values[each.value.password_key]
+
+  storage_encrypted = true
+  kms_key_id        = var.kms_key_id
 
   db_subnet_group_name   = aws_db_subnet_group.this[each.key].name
   vpc_security_group_ids = var.security_group_ids
