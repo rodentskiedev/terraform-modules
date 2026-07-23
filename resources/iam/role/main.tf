@@ -30,6 +30,11 @@ locals {
       }
     }
   ]...)
+
+  role_names = {
+    for role_key, role in local.roles :
+    role_key => try(role.name, "") != "" ? role.name : "${var.project}-${role_key}-${var.environment}"
+  }
 }
 
 data "aws_caller_identity" "this" {}
@@ -37,11 +42,11 @@ data "aws_caller_identity" "this" {}
 resource "aws_iam_role" "this" {
   for_each = local.roles
 
-  name               = "${var.project}-${each.key}-${var.environment}"
+  name               = local.role_names[each.key]
   assume_role_policy = templatefile("${local.config_dir}/${each.value.assume_role_policy}", local.template_vars)
 
   tags = merge(var.tags, try(each.value.tags, {}), {
-    Name = "${var.project}-${each.key}-${var.environment}"
+    Name = local.role_names[each.key]
   })
 }
 

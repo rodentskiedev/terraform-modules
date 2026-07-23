@@ -34,6 +34,7 @@ inputs = {
 roles:
   ecs_task:
     assume_role_policy: assume_role_policy.json
+    name: custom-ecs-task-role
     inline_policies:
       task_permissions:
         policy_file: inline_policy.json
@@ -98,6 +99,7 @@ roles:
 | Field | Description | Required |
 |-------|-------------|----------|
 | `assume_role_policy` | Filename of the trust policy JSON (resolved relative to the config file). Rendered with `templatefile()`; may reference `${region}`, `${aws_account}`, `${project}`, and `${environment}` | yes |
+| `name` | Explicit role name. If empty or omitted, falls back to `"${project}-${role_key}-${environment}"` | no |
 | `inline_policies` | Map of inline policy name to `{ policy_file }` or `{ policy_json }` | no |
 | `managed_policy_arns` | List of managed policy ARNs to attach | no |
 | `tags` | Per-role tags merged with the module-level `tags` variable | no |

@@ -1,6 +1,7 @@
 roles:
   ecs_task:
     assume_role_policy: assume_role_policy.json
+    name: custom-ecs-task-role
     inline_policies:
       task_permissions:
         policy_file: inline_policy.json
